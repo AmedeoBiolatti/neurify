@@ -30,7 +30,9 @@ jobs:
       - name: Check release metadata and version tag
         id: metadata
         run: python scripts/check_release.py --github-output
-      - run: maturin sdist --locked --out source-dist
+      - run: cargo metadata --locked --format-version 1 > /dev/null
+      - run: maturin sdist --out source-dist
+      - run: git diff --exit-code -- Cargo.lock
       - run: python scripts/check_release.py --sdist source-dist
       - run: python -m twine check --strict source-dist/*
       - uses: actions/upload-artifact@v4
@@ -166,4 +168,23 @@ jobs:
           else
             gh release create "$RELEASE_TAG" dist/* --verify-tag --title "Neurify $RELEASE_TAG" --notes-file RELEASE_NOTES.md
           fi
+
+  verify-github-install:
+    needs: [source, github-release]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install packaging
+      - name: Read the public release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > release.json
+      - name: Install directly from GitHub in a fresh environment
+        env:
+          VERSION: ${{ needs.source.outputs.version }}
+        run: python scripts/verify_github_install.py --release-json release.json --expected-version "$VERSION"
 

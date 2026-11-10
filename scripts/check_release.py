@@ -65,7 +65,7 @@ SDIST_REQUIRED = (
     "python/neurify/blocks.py", "python/neurify/residual_block.py",
     "python/neurify/export_residual_block_torch.py", "python/neurify/export_residual_block_jax.py",
     "tests/test_blocks.py", "tests/test_scope_training.py", "examples/blocks.py",
-    "scripts/check_release.py", "scripts/smoke_install.py",
+    "scripts/check_release.py", "scripts/smoke_install.py", "scripts/verify_github_install.py",
     "crates/neurify-core/Cargo.toml", "crates/neurify-core/src/lib.rs",
     "crates/neurify-frontend/Cargo.toml", "crates/neurify-frontend/src/lib.rs",
     "crates/neurify-py/Cargo.toml", "crates/neurify-py/src/lib.rs",

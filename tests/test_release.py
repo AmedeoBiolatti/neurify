@@ -16,6 +16,8 @@ tomllib = pytest.importorskip("tomllib", reason="maintainer release tools requir
 from scripts.check_release import (
     SDIST_REQUIRED, check_dist, check_sdist, check_source, check_wheel, extract_sdist,
 )
+from scripts.verify_github_install import select_wheel
+from packaging.tags import Tag
 
 ROOT = Path(__file__).resolve().parents[1]
 CURRENT_VERSION = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
@@ -148,3 +150,31 @@ def test_duplicate_platform_cannot_hide_a_missing_platform(tmp_path):
         wheel(tmp_path / f"neurify-0.1.0-cp310-abi3-{platform}.whl")
     with pytest.raises(ValueError, match="missing or duplicate"):
         check_dist(tmp_path, "0.1.0")
+
+
+def public_assets():
+    return {"tag_name": "v0.1.0", "assets": [
+        {"name": f"neurify-0.1.0-cp310-abi3-{platform}.whl",
+         "browser_download_url": f"https://github.com/AmedeoBiolatti/neurify/releases/download/v0.1.0/neurify-0.1.0-cp310-abi3-{platform}.whl"}
+        for platform in ("win_amd64", "manylinux_2_17_x86_64", "macosx_11_0_arm64")
+    ]}
+
+
+def test_public_install_selects_the_compatible_wheel():
+    tags = [Tag("cp312", "cp312", "manylinux_2_17_x86_64"), Tag("cp310", "abi3", "manylinux_2_17_x86_64")]
+    assert select_wheel(public_assets(), "0.1.0", tags).endswith("manylinux_2_17_x86_64.whl")
+
+
+def test_public_install_does_not_fall_back_to_source_on_unsupported_platform():
+    with pytest.raises(ValueError, match="no compatible wheel"):
+        select_wheel(public_assets(), "0.1.0", [Tag("cp310", "abi3", "win_arm64")])
+
+
+def test_public_install_rejects_a_wrong_release_or_non_github_asset():
+    tags = [Tag("cp310", "abi3", "win_amd64")]
+    with pytest.raises(ValueError, match="tag"):
+        select_wheel(public_assets(), "0.2.0", tags)
+    release = public_assets()
+    release["assets"][0]["browser_download_url"] = "http://example.org/wheel.whl"
+    with pytest.raises(ValueError, match="HTTPS GitHub"):
+        select_wheel(release, "0.1.0", tags)
