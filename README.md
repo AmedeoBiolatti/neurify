@@ -7,23 +7,25 @@ Neurify is experimental software (0.1.0), licensed under [MIT](LICENSE).
 Exactness depends on the declared input domain, architecture, and numeric
 precision. Inspect `net.report` and run `nf.verify(net)` for your program.
 
-## Install
+## Install from GitHub
 
-Published releases install with:
+With Python 3.10+, Rust, Git, and a C linker installed:
 
 ```sh
-python -m pip install neurify
+python -m pip install "neurify @ git+https://github.com/AmedeoBiolatti/neurify.git@v0.1.0"
 ```
 
-For training exports, choose `python -m pip install 'neurify[torch]'` or
-`python -m pip install 'neurify[jax]'`. The base package needs only NumPy.
-Prebuilt release wheels target regular CPython 3.10–3.14 on Linux (glibc,
-x86-64 and ARM64), macOS (Intel and Apple Silicon), and Windows x86-64.
-Installing a matching wheel does not need Rust or a C compiler.
+For Torch exports, use
+`python -m pip install "neurify[torch] @ git+https://github.com/AmedeoBiolatti/neurify.git@v0.1.0"`.
+Use `[jax]` for JAX. The base package needs only NumPy.
 
-The first public release still needs its repository, native wheel builds,
-and PyPI setup completed. See [RELEASING.md](RELEASING.md) for the exact
-release steps and current validation limits.
+To install **without Rust**, download the wheel for your platform from the
+[GitHub release](https://github.com/AmedeoBiolatti/neurify/releases/tag/v0.1.0)
+and run `python -m pip install /path/to/downloaded.whl`. The release provides
+wheels for regular CPython 3.10–3.14 on Linux (glibc, x86-64 and ARM64),
+macOS (Intel and Apple Silicon), and Windows x86-64.
+
+Neurify is distributed through GitHub; there is no PyPI release.
 
 ### Install from source
 

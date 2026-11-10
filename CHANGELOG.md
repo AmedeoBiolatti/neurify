@@ -4,7 +4,7 @@
 
 - Prepare version-tagged public releases with five portable abi3 wheels,
   source distributions, clean-install/native smoke checks, full CI gates,
-  GitHub release assets, and optional PyPI trusted publishing. Validate
+  GitHub release assets and direct GitHub installation. Validate
   version/license consistency, archive completeness, and wheel metadata.
 
 - Add immutable `Block` configurations to `compile(..., blocks={...})` for

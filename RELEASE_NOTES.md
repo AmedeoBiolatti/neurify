@@ -14,11 +14,19 @@ optional Torch/JAX exports for subsequent training.
 - Inspect structure, total/trainable parameter counts, and current policies.
 - Validate malformed native API inputs with Python exceptions.
 
-Release wheels are built for CPython 3.10+ on Linux x86-64/ARM64,
-macOS Intel/Apple Silicon, and Windows x86-64. Install a downloaded wheel with
-`python -m pip install /path/to/neurify-0.1.0-...whl`.
-Once the PyPI publishing job succeeds, install with `python -m pip install
-neurify` and optional `neurify[torch]` or `neurify[jax]` extras.
+Release wheels support regular CPython 3.10+ on Linux x86-64/ARM64,
+macOS Intel/Apple Silicon, and Windows x86-64. Download the matching wheel
+below and install it with `python -m pip install /path/to/downloaded.whl`.
+This does not require Rust.
+
+Alternatively, with Rust, Git, and a C linker installed:
+
+```sh
+python -m pip install "neurify @ git+https://github.com/AmedeoBiolatti/neurify.git@v0.1.0"
+```
+
+For training exports, replace `neurify` with `neurify[torch]` or
+`neurify[jax]` in that command. There is no PyPI release.
 
 This is experimental software. Exactness depends on declared domains,
 architecture, and numeric precision; inspect `net.report` and use
