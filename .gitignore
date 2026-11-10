@@ -1,0 +1,28 @@
+# Rust and Python build products
+/target/
+/dist/
+/crates/release/
+*.so
+*.dylib
+*.dll
+*.pyd
+*.py[cod]
+__pycache__/
+*.egg-info/
+/build/
+
+# Local environments and test output
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local settings and credentials
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db

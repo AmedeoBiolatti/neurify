@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test -p neurify-core -p neurify-frontend --locked
+      - run: cargo check -p neurify-py --locked
+
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: dtolnay/rust-toolchain@stable
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install '.[test]'
+      - run: python -m pytest
+
+  backends:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install 'torch>=2.2' --index-url https://download.pytorch.org/whl/cpu
+      - run: python -m pip install '.[test,torch,jax]'
+      - run: python -m pytest tests/test_training.py tests/test_trainability.py tests/test_transformer.py tests/test_regions.py tests/test_scopes.py tests/test_interface.py tests/test_activations.py tests/test_scope_training.py tests/test_blocks.py
+        env:
+          JAX_ENABLE_X64: 'true'
+          OMP_NUM_THREADS: '4'
+
+  distributions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - run: python -m pip install 'maturin>=1.9.3,<2' twine
+      - run: maturin build --release --locked --out dist
+      - run: maturin sdist --out dist
+      - run: python -m twine check dist/*
+      - name: Check distribution licensing
+        run: |
+          python - <<'PYCODE'
+          import glob
+          import tarfile
+          import tomllib
+          import zipfile
+          from email import message_from_bytes
+          for path in glob.glob('dist/*.whl'):
+              with zipfile.ZipFile(path) as wheel:
+                  names = wheel.namelist()
+                  metadata = next(name for name in names if name.endswith('.dist-info/METADATA'))
+                  assert message_from_bytes(wheel.read(metadata))['License-Expression'] == 'MIT'
+                  assert any(name.endswith('.dist-info/licenses/LICENSE') for name in names)
+          for path in glob.glob('dist/*.tar.gz'):
+              with tarfile.open(path) as source:
+                  prefix = source.getnames()[0].split('/')[0] + '/'
+                  assert source.extractfile(prefix + 'LICENSE').read().startswith(b'MIT License')
+                  project = tomllib.loads(source.extractfile(prefix + 'pyproject.toml').read().decode())
+                  assert project['project']['license'] == 'MIT'
+                  assert project['project']['license-files'] == ['LICENSE']
+          PYCODE
+      - name: Install and test the source distribution
+        run: |
+          python -m pip install dist/*.tar.gz
+          python -m pip install pytest
+          python -m pytest
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/*

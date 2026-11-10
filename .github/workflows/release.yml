@@ -1,0 +1,194 @@
+name: Release
+
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
+  source:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - run: python -m pip install 'maturin==1.16.0' twine packaging
+      - name: Check release metadata and version tag
+        id: metadata
+        run: python scripts/check_release.py --github-output
+      - run: maturin sdist --locked --out source-dist
+      - run: python scripts/check_release.py --sdist source-dist
+      - run: python -m twine check --strict source-dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-sdist
+          path: source-dist/*.tar.gz
+          if-no-files-found: error
+
+  wheels:
+    needs: source
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-22.04
+            target: x86_64
+            manylinux: '2014'
+          - name: linux-aarch64
+            os: ubuntu-24.04-arm
+            target: aarch64
+            manylinux: '2014'
+          - name: macos-x86_64
+            os: macos-15-intel
+            target: x86_64
+            manylinux: auto
+          - name: macos-aarch64
+            os: macos-15
+            target: aarch64
+            manylinux: auto
+          - name: windows-amd64
+            os: windows-2022
+            target: x86_64
+            manylinux: auto
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-sdist
+          path: source-dist
+      - name: Extract the validated source distribution
+        run: python scripts/check_release.py --extract source-dist --destination wheel-source
+      - uses: PyO3/maturin-action@v1
+        with:
+          maturin-version: v1.16.0
+          command: build
+          working-directory: wheel-source
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --locked --strip --out ../dist
+      - name: Install the built wheel without compiling from source
+        run: |
+          python -m pip install --only-binary=:all: dist/*.whl pytest
+      - run: python -I scripts/smoke_install.py --expected-version '${{ needs.source.outputs.version }}'
+      - name: Test the installed package and rebuilt native boundaries
+        run: python -m pytest tests crates/neurify-py/tests -q
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-wheel-${{ matrix.name }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  python-compatibility:
+    needs: [source, wheels]
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-wheel-linux-x86_64
+          path: dist
+      - run: |
+          python -m pip install --only-binary=:all: dist/*.whl pytest
+      - run: python -I scripts/smoke_install.py --expected-version '${{ needs.source.outputs.version }}'
+      - run: python -m pytest tests crates/neurify-py/tests -q
+
+  artifacts:
+    needs: [validate, source, wheels, python-compatibility]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install twine packaging
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+      - run: python scripts/check_release.py --dist dist --checksums
+      - run: python -m twine check --strict dist/*.whl dist/*.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publish-dist
+          path: dist/*
+          if-no-files-found: error
+
+  github-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: artifacts
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: publish-dist
+          path: dist
+      - name: Publish the tested wheels and source distribution
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" --json tagName >/dev/null 2>&1; then
+            echo "GitHub release already exists; retaining its tested assets."
+          else
+            gh release create "$RELEASE_TAG" dist/* --verify-tag --title "Neurify $RELEASE_TAG" --notes-file RELEASE_NOTES.md
+          fi
+
+  pypi:
+    if: startsWith(github.ref, 'refs/tags/v') && vars.PYPI_PUBLISH_ENABLED == 'true'
+    needs: [source, artifacts]
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/project/neurify/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: publish-dist
+          path: dist
+      - name: Remove the checksum manifest from the upload directory
+        run: rm dist/SHA256SUMS
+      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/checkout@v4
+      - name: Verify the public PyPI install
+        env:
+          VERSION: ${{ needs.source.outputs.version }}
+        run: python scripts/verify_pypi_install.py "$VERSION"

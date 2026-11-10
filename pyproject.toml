@@ -1,0 +1,101 @@
+[build-system]
+requires = ["maturin>=1.9.3,<2"]
+build-backend = "maturin"
+
+[project]
+name = "neurify"
+version = "0.1.0"
+description = "Compile plain Python functions into exactly-equivalent, trainable neural networks"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+keywords = ["compiler", "neural-networks", "python", "rust"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = ["numpy>=1.24"]
+
+[project.urls]
+Homepage = "https://github.com/AmedeoBiolatti/neurify"
+Repository = "https://github.com/AmedeoBiolatti/neurify"
+Documentation = "https://github.com/AmedeoBiolatti/neurify#readme"
+Issues = "https://github.com/AmedeoBiolatti/neurify/issues"
+
+[project.optional-dependencies]
+torch = ["torch>=2.2"]
+jax = ["jax>=0.4"]
+test = ["pytest>=7"]
+
+[tool.maturin]
+manifest-path = "crates/neurify-py/Cargo.toml"
+python-source = "python"
+module-name = "neurify._core"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "crates/neurify-py/tests"]
+
+# Keep the source distribution useful for contributors, not just wheel builds.
+[[tool.maturin.include]]
+path = "tests/**/*"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "crates/neurify-py/tests/**/*"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "DESIGN.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "CONTRIBUTING.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "CHANGELOG.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "CONTROLS.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "SCOPE_TRAINING.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "BLOCKS.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "examples/**/*"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "scripts/*.py"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "RELEASING.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "RELEASE_NOTES.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = ".github/workflows/*.yml"
+format = "sdist"

@@ -1,0 +1,9 @@
+[package]
+name = "neurify-core"
+description = "Exact compiler from programs to neural networks (core IR, gadgets, assembly)"
+version.workspace = true
+edition.workspace = true
+license = "MIT"
+readme = "README.md"
+
+[dependencies]

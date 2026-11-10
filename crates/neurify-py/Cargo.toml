@@ -1,0 +1,16 @@
+[package]
+name = "neurify-py"
+description = "Python bindings for Neurify's program-to-neural-network compiler"
+version.workspace = true
+edition.workspace = true
+license = "MIT"
+readme = "README.md"
+
+[lib]
+name = "_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+neurify-core = { version = "0.1.0", path = "../neurify-core" }
+neurify-frontend = { version = "0.1.0", path = "../neurify-frontend" }
+pyo3 = { version = "0.30", features = ["extension-module", "abi3-py310"] }

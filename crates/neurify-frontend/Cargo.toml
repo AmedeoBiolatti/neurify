@@ -1,0 +1,11 @@
+[package]
+name = "neurify-frontend"
+description = "Python-source frontend for neurify: parser + symbolic interpreter producing neurify-core IR"
+version.workspace = true
+edition.workspace = true
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+neurify-core = { version = "0.1.0", path = "../neurify-core" }
+rustpython-parser = "0.4"
