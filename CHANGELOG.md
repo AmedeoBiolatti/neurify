@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Consolidate experimental work: keep the classical target opt-in, document
+  application-only findings, and add an exact zero-output transformer example.
+  Validate attention dropout, finite initialization, output batch shapes and
+  unsupported generic options in registered lowerings.
+
+- Add an explicit immutable `Transformer()` target, defaulting to four
+  classical pre-LN/ReLU blocks with uniform FFNs. Add a registered-lowering
+  interface, hard shape checks, original-function calls, IR verification
+  and Torch export. Unsupported functions fail explicitly; the existing
+  generic transformer compiler remains unchanged.
+
 - Prepare version-tagged public releases with five portable abi3 wheels,
   source distributions, clean-install/native smoke checks, full CI gates,
   GitHub release assets and direct GitHub installation. Validate

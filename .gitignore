@@ -2,6 +2,8 @@
 /target/
 /dist/
 /crates/release/
+/crates/experiments/
+/crates/worktrees/
 *.so
 *.dylib
 *.dll

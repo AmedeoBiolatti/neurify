@@ -17,6 +17,7 @@ trainable neural networks.
 from ._core import CompileError, TraceError
 from .compiler import ARCHS, ATTENTIONS, METHODS, OUTPUTS, compile
 from .blocks import Block
+from .transformer import Transformer, TransformerNetwork, transformer_lowering
 from .domains import Bool, Domain, Int, Real, Seq, Static, Vec
 from .merge import COMBINES, merge
 from .network import Network
@@ -33,6 +34,6 @@ __all__ = [
     "where", "relu", "CompileError", "TraceError", "ARCHS", "ATTENTIONS", "METHODS", "OUTPUTS",
     "region", "pipeline", "Region", "Pipeline",
     "scope", "Scope", "ScopedNetwork",
-    "Evaluation", "Block",
+    "Evaluation", "Block", "Transformer", "TransformerNetwork", "transformer_lowering",
 ]
 __version__ = "0.1.0"

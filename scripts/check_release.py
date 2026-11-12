@@ -63,6 +63,8 @@ SDIST_REQUIRED = (
     "pyproject.toml", "Cargo.toml", "Cargo.lock", "LICENSE", "README.md",
     "BLOCKS.md", "CONTROLS.md", "SCOPE_TRAINING.md", "RELEASING.md", "RELEASE_NOTES.md",
     "python/neurify/blocks.py", "python/neurify/residual_block.py",
+    "python/neurify/transformer.py", "CLASSICAL_TRANSFORMER.md", "EXPERIMENTS.md",
+    "tests/test_transformer_target.py", "examples/classical_transformer.py",
     "python/neurify/export_residual_block_torch.py", "python/neurify/export_residual_block_jax.py",
     "tests/test_blocks.py", "tests/test_scope_training.py", "examples/blocks.py",
     "scripts/check_release.py", "scripts/smoke_install.py", "scripts/verify_github_install.py",
@@ -126,7 +128,8 @@ def check_wheel(path, version):
         require(metadata["License-Expression"] == "MIT", "wheel license expression mismatch")
         require(metadata["Requires-Python"] == ">=3.10", "wheel Python requirement mismatch")
         require(any(n.endswith(".dist-info/licenses/LICENSE") for n in names), "wheel license file missing")
-        require("neurify/blocks.py" in names and "neurify/residual_block.py" in names, "new interface missing from wheel")
+        require({"neurify/blocks.py", "neurify/residual_block.py", "neurify/transformer.py"} <= set(names),
+                "new interface missing from wheel")
         require(any(n.startswith("neurify/_core") and n.endswith((".so", ".pyd")) for n in names), "native extension missing")
     return platforms
 

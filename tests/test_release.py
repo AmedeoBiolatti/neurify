@@ -41,7 +41,7 @@ def sdist(path, *, omit=(), extra=None):
     return path
 
 
-def wheel(path, *, license="MIT", version="0.1.0", include_native=True):
+def wheel(path, *, license="MIT", version="0.1.0", include_native=True, include_classical=True):
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr("neurify-0.1.0.dist-info/METADATA",
                          f"Metadata-Version: 2.4\nName: neurify\nVersion: {version}\n"
@@ -49,6 +49,8 @@ def wheel(path, *, license="MIT", version="0.1.0", include_native=True):
         archive.writestr("neurify-0.1.0.dist-info/licenses/LICENSE", "MIT License\n")
         archive.writestr("neurify/blocks.py", "")
         archive.writestr("neurify/residual_block.py", "")
+        if include_classical:
+            archive.writestr("neurify/transformer.py", "")
         if include_native:
             archive.writestr("neurify/_core.abi3.so", b"metadata fixture, not a native binary")
     return path
@@ -126,7 +128,8 @@ def test_incompatible_or_nonportable_wheel_tags_are_rejected(tmp_path, filename)
         check_wheel(wheel(tmp_path / filename), "0.1.0")
 
 
-@pytest.mark.parametrize("kwargs", [{"license": "Apache-2.0"}, {"version": "0.2.0"}, {"include_native": False}])
+@pytest.mark.parametrize("kwargs", [{"license": "Apache-2.0"}, {"version": "0.2.0"},
+                                   {"include_native": False}, {"include_classical": False}])
 def test_invalid_wheel_contents_are_rejected(tmp_path, kwargs):
     with pytest.raises(ValueError):
         check_wheel(wheel(tmp_path / "neurify-0.1.0-cp310-abi3-win_amd64.whl", **kwargs), "0.1.0")

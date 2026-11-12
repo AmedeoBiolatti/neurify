@@ -9,6 +9,7 @@ from . import _core
 from ._host import Host, function_source
 from .domains import Bool, Int, Real, Static, to_spec
 from .network import Network
+from .transformer import Transformer, TransformerNetwork
 
 ARCHS = ("mlp", "resmlp", "glu", "transformer")
 ATTENTIONS = ("softmax", "relu", "hard")
@@ -56,7 +57,7 @@ def compile(
     inputs: dict | None = None,
     *,
     static: dict | None = None,
-    arch: str = "mlp",
+    arch: str | Transformer = "mlp",
     method: str = "depth",
     margin: float = 1e-3,
     strict: bool = False,
@@ -78,7 +79,7 @@ def compile(
     groups: list | None = None,
     weights: list | None = None,
     blocks: dict | None = None,
-) -> Network:
+) -> Network | TransformerNetwork:
     """Compile a plain Python function into an exactly-equivalent network.
 
     Args:
@@ -90,7 +91,9 @@ def compile(
         arch: ``"mlp"`` (ReLU MLP), ``"resmlp"`` (residual ReLU MLP),
             ``"glu"`` (residual ReGLU; exact products of real values) or
             ``"transformer"`` (token 0 runs the program; ``Seq`` inputs live
-            on tokens 1..n and are read through attention).
+            on tokens 1..n and are read through attention). An explicit
+            ``Transformer()`` target selects the experimental registered
+            classical backend (four uniform pre-LN blocks by default).
         method: gadget/schedule objective: ``"depth"``, ``"size"`` or
             ``"trainable"`` (well-conditioned, symmetric gadgets).
         margin: band width for real-valued comparisons that cannot be exact
@@ -151,6 +154,23 @@ def compile(
             mlp=mlp, layernorm=layernorm, ln_tol=ln_tol, output=output, slope=slope, repr=repr, onehot_max=onehot_max,
             trainable=trainable, groups=groups, weights=weights, blocks=blocks,
         )
+    from .transformer import compile_transformer
+    if isinstance(arch, Transformer):
+        from .scopes import has_scopes
+        if has_scopes(fn):
+            raise ValueError('classical Transformer lowerings do not yet preserve named scope controls or probes; use an unscoped source function')
+        if blocks is not None or trainable is not False or output != 'raw' or groups is not None or weights is not None:
+            raise ValueError('classical Transformer targets currently support raw output without scope overrides or preparation transforms')
+        if attention != 'softmax' or mlp != 'relu' or slope != 0 or repr != 'scalar' or not robust:
+            raise ValueError('classical Transformer lowering controls its softmax/ReLU/balanced representation')
+        if method != 'depth':
+            raise ValueError('classical Transformer lowering controls its own schedule; method overrides are not supported')
+        if layernorm is not False or attn_tol != 1e-6 or ln_tol != 1e-6 or onehot_max != 64:
+            raise ValueError('classical Transformer targets do not accept generic normalization, tolerance or onehot overrides')
+        return compile_transformer(fn, arch, inputs=inputs, static=static, strict=strict,
+            reference_options=dict(method=method, margin=margin, max_loop_iters=max_loop_iters,
+                                   max_inline_depth=max_inline_depth, max_table=max_table,
+                                   exhaustive_points=exhaustive_points))
     if arch not in ARCHS:
         raise ValueError(f"arch must be one of {ARCHS}")
     if attention not in ATTENTIONS:

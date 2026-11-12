@@ -81,6 +81,14 @@ path = "BLOCKS.md"
 format = "sdist"
 
 [[tool.maturin.include]]
+path = "CLASSICAL_TRANSFORMER.md"
+format = "sdist"
+
+[[tool.maturin.include]]
+path = "EXPERIMENTS.md"
+format = "sdist"
+
+[[tool.maturin.include]]
 path = "examples/**/*"
 format = "sdist"
 

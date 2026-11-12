@@ -155,6 +155,28 @@ Tighter bounds give smaller networks.
   sparsity (ConnectX: 61k → 29k non-zeros, depth 29 → 59); combine it with
   `arch="resmlp"` to also avoid pass-through units.
 
+For an explicit classical layout, the experimental `nf.Transformer()` target
+defaults to **four blocks with uniform FFN widths**, four heads, pre-LayerNorm
+and ReLU. A registered function-specific lowering is currently required:
+
+```python
+target = nf.Transformer()  # blocks=4, uniform_ffn=True; widths inferred
+net = nf.compile(my_function, arch=target, strict=True)
+print(net.summary())
+```
+
+This raises `CompileError` if no lowering is registered or if the requested
+shape cannot fit. It does not silently deepen the model or fit an
+approximation. Existing `arch="transformer"` behavior is unchanged. See
+[CLASSICAL_TRANSFORMER.md](CLASSICAL_TRANSFORMER.md) for the registration
+contract, overrides, and current limitations. This API is an unreleased
+source change, not part of the published v0.1.0 wheel.
+
+Run `python examples/classical_transformer.py` for a self-contained registered
+lowering with exact initial scores and trainable zero-output residual branches.
+[EXPERIMENTS.md](EXPERIMENTS.md) explains which experimental results are retained
+in the library and which remain application research.
+
 ## Output encodings
 
 `output="raw"` (default) returns the program's values. For decision
